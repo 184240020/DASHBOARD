@@ -11,15 +11,17 @@ def load_data():
 def filter_data(df, year=None, location=None):
     if year:
         df = df[df['Date'].astype(str).str.contains(str(year))]
-    if location and location != 'Semua Provinsi':
-        df = df[df['Location'] == location]
+    if location:
+        df = df[df['Location'].isin(location)]
     return df
 
 def select_location(df):
-    locations = ['Semua Provinsi'] + sorted (df['Location'].unique())
-    return st.sidebar.selectbox(
+    locations = sorted(df['Location'].unique())
+    return st.sidebar.multiselect(
         "Pilih Provinsi",
-        options= locations)
+        options= locations,
+        default=[],
+    )
 
 def select_year():
     return st.sidebar.selectbox(
@@ -152,8 +154,8 @@ def map_chart(df, year=None):
         df = df[df['Date'].dt.year == year]
     
     #agregasi data per lokasi
-    df_agg = df.groupby('location', 'latitude', 'longitude', as_index=False)['New Cases'].sum()
-    df_map = df_agg.dropna(subset=['latitude', 'longitude', 'New Cases'])
+    df_agg = df.groupby('Location', 'Latitude', 'Longitude', as_index=False)['New Cases'].sum()
+    df_map = df_agg.dropna(subset=['Latitude', 'Longitude', 'New Cases'])
     
     #Validasi Data
     if df_map.empty:
@@ -197,3 +199,22 @@ def map_chart(df, year=None):
 
 if __name__ == "__main__":
     show_data()
+    
+    df= load_data()
+    year= select_year()
+    location = select_location(df)
+    
+    df_filtered = filter_data(df, year, location)
+    
+    kolom1(df_filtered)
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        pie_chart1(df_filtered)
+    with c2:
+        bar_chart1(df_filtered)
+        
+    bar_chart2(df_filtered)
+    map_chart(df_filtered, year)
+    
+    show_data(df_filtered)
